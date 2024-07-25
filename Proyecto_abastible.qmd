@@ -1,0 +1,222 @@
+---
+title: "Mapas Abastible por comuna y manzana "
+format:
+  html:
+    code-fold: true
+    toc: true
+    toc-location: left
+    theme: united
+lang: es
+editor: visual
+embed-resources: true
+params:
+---
+
+## Abastible
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(glue)
+library(ggthemes)
+
+# Cargar el archivo GeoJSON
+geojson_path <- "Data/microcensodatos shp/Microdatos_Censo_2017%3A_Manzana.geojson"
+manzanas_geojson <- st_read(geojson_path, quiet = TRUE)
+
+# Verificar la estructura del archivo GeoJSON cargado
+#print(manzanas_geojson)
+
+datos_geojson<- as.data.frame(manzanas_geojson)
+
+
+comuna<- datos_geojson %>%
+ filter(CUT %in% c(10202,9101,9209, 9201, 9211, 9108, 9115, 9120, 9112, 9114, 9111, 10301, 14101, 14108, 14204, 14201, 10101, 10109, 10201, 10202, 10105)) %>%
+  select(MANZENT,CUT, COMUNA,REGION, TOTAL_PERSONAS,TOTAL_VIVIENDAS,geometry)
+
+#Objetos que llamaremos luego
+
+lista_comunas <- glue_collapse(unique(comuna$COMUNA), sep= ", ", last=" y ")
+total_comunas <- length(unique(comuna$COMUNA))
+lista_region <- glue_collapse(unique(comuna$REGION), sep= ", ", last=" y ")
+```
+
+A continuación se presenta la distribucion espacial del total de personas por manzana de `r total_comunas` comunas de Chile, pertenecientes a las regiones de : `r lista_region`. La muestra esta compuesta por las siguientes `r lista_comunas`.
+
+Los datos fueron obtenidos del Censos 2017, y pueden ser obtenidos en el siguiente link [Microdatos Manzanas Censo 2017](#0).
+
+### Tabla N° 1
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+# Agrupar por comuna y sumar el total de personas
+total_comuna<- comuna%>%
+  group_by(COMUNA) %>%
+  summarise(TOTAL_PERSONAS = sum(TOTAL_PERSONAS))
+
+
+ggplot(total_comuna, aes(x = reorder(COMUNA, TOTAL_PERSONAS), y = (TOTAL_PERSONAS))) +
+  geom_col(fill = "orange") +
+  geom_text(aes(label = TOTAL_PERSONAS), vjust = -0.5, color = "#636363", size=2)+
+  labs(title = "Número de personas para las comunas de la muestra", y = NULL, x = NULL) +
+  theme_clean() +
+  theme(
+    plot.title = element_text(color = "#636363", size = 14, face = "bold", hjust= 0.5),
+   axis.title.x = element_text(color = "#636363", size = 6),
+    axis.title.y = element_text(color = "#636363", size = 6),
+    axis.text.x = element_text(color = "#636363", size = 6, angle = 45, hjust = 1),
+    axis.text.y = element_text(color = "#636363", size = 6)
+  )
+```
+
+A continuación se presentan los mapas de población por manzana para cada comuna.
+
+```{r}
+# Verifica el tipo de objeto
+#| echo: false
+#| message: false
+#| warning: false
+
+library(sf)
+
+# Asegúrate de que `geometry` es una columna de geometría de tipo `sf`
+comuna_sf <- st_as_sf(comuna)
+
+# Crear el directorio para los mapas si no existe
+dir.create("maps", showWarnings = FALSE)
+
+# Crear mapas separados y guardarlos con tamaño ajustado
+comunas <- unique(comuna_sf$COMUNA)
+
+for (comuna_name in comunas) {
+  comuna_data <- comuna_sf%>% filter(COMUNA == comuna_name)
+  
+  mapa <- ggplot(data = comuna_data) +
+    geom_sf(aes(fill = TOTAL_PERSONAS), color = "black") +
+     coord_sf(datum = st_crs(32718))+
+    scale_fill_gradient(name = "Total de Personas", low = "#fff7bc", high = "#d95f0e") +
+    theme_minimal() +
+    labs(title = paste("Mapa de Población para la Comuna", comuna_name), 
+         subtitle = "Distribución de la población en la comuna") +
+    theme(plot.title = element_text(size = 14),
+          plot.subtitle = element_text(size = 10))
+  
+  # Ajustar las dimensiones al guardar los mapas
+  ggsave(filename = paste0("maps/mapa_comuna_", comuna_name, ".png"), plot = mapa, width = 15, height = 10, dpi = 300)
+}
+
+
+```
+
+## Mapas de población por Manzana para las comunas de la Muestra
+
+### Mapa N°1: Puerto Montt
+
+![](maps/mapa_comuna_PUERTO%20MONTT.png)
+
+### Mapa N°2: Frutillar
+
+![](maps/mapa_comuna_FRUTILLAR.png)
+
+### Mapa N°3: Castro
+
+![](maps/mapa_comuna_CASTRO.png)
+
+### Mapa N°4: Ancud
+
+![](maps/mapa_comuna_ANCUD.png)
+
+### Mapa N°5: Puerto Varas
+
+![](maps/mapa_comuna_PUERTO%20VARAS.png)
+
+### Mapa N°6: Osorno
+
+![](maps/mapa_comuna_OSORNO.png)
+
+### Mapa N°7: Temuco
+
+![](maps/mapa_comuna_TEMUCO.png)
+
+### Mapa N°8: Lautaro
+
+![](maps/mapa_comuna_LAUTARO.png)
+
+### Mapa N°9: Pitrufquén
+
+![](maps/mapa_comuna_PITRUFQUÉN.png)
+
+### Mapa N°10: Nueva Imperial
+
+![](maps/mapa_comuna_NUEVA%20IMPERIAL.png)
+
+### Mapa N°11: Padre las Casas
+
+![](maps/mapa_comuna_PADRE%20LAS%20CASAS.png)
+
+### Mapa N° 12: Pucón
+
+![](maps/mapa_comuna_PUCÓN.png)
+
+### Mapa N°13: Angol
+
+![](maps/mapa_comuna_ANGOL.png)
+
+### Mapa N°14: Victoria
+
+![](maps/mapa_comuna_VICTORIA.png)
+
+### Mapa N°15: Villarrica
+
+![](maps/mapa_comuna_VILLARRICA.png)
+
+### Mapa N°16: Renaico![](maps/mapa_comuna_RENAICO.png)
+
+### Mapa N°17: Valdivia
+
+![](maps/mapa_comuna_VALDIVIA.png)
+
+### Mapa N°18: Panguipulli
+
+![](maps/mapa_comuna_PANGUIPULLI.png)
+
+### Mapa N°19: Río Bueno
+
+![](maps/mapa_comuna_RÍO%20BUENO.png)
+
+### Mapa N°20: La Unión
+
+![](maps/mapa_comuna_LA%20UNIÓN.png)
+
+## Tabla N° 2: Número de viviendas para cada comuna de la muestra
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+library(gt)
+library(ggsci)
+library (gghighlight)
+
+comuna |>
+  group_by(COMUNA) |>
+  summarise(TOTAL_VIVIENDAS = sum(TOTAL_VIVIENDAS)) |>
+  gt() |>
+  tab_header(title = "Comparación de la esperanza de vida entre 2019 y 2020") |>
+  cols_label(TOTAL_VIVIENDAS = "N° de viviendas") |>
+   data_color(columns = TOTAL_VIVIENDAS, method = "numeric", palette = "ggsci::orange_material")
+
+```
